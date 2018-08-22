@@ -2,6 +2,7 @@ package fileDateSort
 
 import (
 	"os"
+	"strings"
 	"time"
 )
 
@@ -33,12 +34,18 @@ func (f Fldr) Latest() os.FileInfo {
 	var modTime time.Time
 	var names []File
 	for _, i := range f.Files {
-		if !i.Info.ModTime().Before(modTime) {
-			if i.Info.ModTime().After(modTime) {
-				modTime = i.Info.ModTime()
-				names = names[:0]
+		if !i.Info.IsDir() {
+			if i.Info.Mode().IsRegular() {
+				if !strings.HasSuffix(i.Info.Name(), ".ini") {
+					if !i.Info.ModTime().Before(modTime) {
+						if i.Info.ModTime().After(modTime) {
+							modTime = i.Info.ModTime()
+							names = names[:0]
+						}
+						names = append(names, i)
+					}
+				}
 			}
-			names = append(names, i)
 		}
 	}
 	return names[0].Info
