@@ -1,6 +1,8 @@
 package fileDateSort
 
 import (
+	"encoding/csv"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -103,4 +105,59 @@ func CopyFileContents(src, dst string) (err error) {
 	}
 	err = out.Sync()
 	return
+}
+
+// TSVReadWriter reads and writes tsv files
+func TSVReadWriter(r io.Reader, dst string) error {
+	var out *os.File
+	var err error
+	//Implemented for removing a file that is downloaded daily
+	// and does not need to be archived.
+	// Comment out next block if archiving is necessary
+	if _, err = os.Stat(dst); err == nil {
+		err = os.Remove(dst)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+	out, err = os.Create(dst)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		cerr := out.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+	tsv := csv.NewReader(r)
+	tsv.Comma = '\t'
+	// LazyQuotes is a solution to the parse error
+	// If LazyQuotes is true, a quote may appear in an unquoted field and a
+	// non-doubled quote may appear in a quoted field.
+	// parse error on line 1414, column 78: bare " in non-quoted-field
+	tsv.LazyQuotes = true
+	tsvOut := csv.NewWriter(out)
+	tsvOut.Comma = '\t'
+	read, err := tsv.ReadAll()
+	if err != nil {
+		log.Fatalf("error'd at ReadAll: %v\n", err)
+	}
+	// WriteAll Calls Flush()
+	err = tsvOut.WriteAll(read)
+	if err != nil {
+		log.Fatalf("Error'd at WriteAll: %v\n", err)
+	}
+	// tsvOut.Flush()
+	//Would have worked if not tsv
+	// _, err = io.Copy(out, f)
+	// if err != nil {
+	// 	return err
+	// }
+	s := out.Sync()
+	if s != nil {
+		log.Fatalf("Didn't sync %v\n", s)
+	}
+	return s
 }
