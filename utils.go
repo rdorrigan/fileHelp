@@ -1,8 +1,10 @@
 package fileDateSort
 
 import (
+	"io"
 	"log"
 	"os"
+	"path"
 	"strings"
 	"time"
 )
@@ -15,6 +17,16 @@ type File struct {
 // Fldr is a folder
 type Fldr struct {
 	Files []File
+}
+
+// FileExists checks that a file usually the log exists
+func FileExists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
 }
 
 // LogWriter writes to the given log
@@ -61,4 +73,34 @@ func (f Fldr) Latest() os.FileInfo {
 		}
 	}
 	return names[0].Info
+}
+
+// Cleaning cleans paths
+func Cleaning(c string) string {
+	cleaned := path.Clean(c)
+	return cleaned
+}
+
+// CopyFileContents copies files
+func CopyFileContents(src, dst string) (err error) {
+	in, err := os.Open(src)
+	if err != nil {
+		return
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return
+	}
+	defer func() {
+		cerr := out.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+	if _, err = io.Copy(out, in); err != nil {
+		return
+	}
+	err = out.Sync()
+	return
 }
