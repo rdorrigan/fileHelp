@@ -1,6 +1,7 @@
 package fileDateSort
 
 import (
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -14,6 +15,17 @@ type File struct {
 // Fldr is a folder
 type Fldr struct {
 	Files []File
+}
+
+// LogWriter writes to the given log
+func LogWriter(file string, content string) error {
+	f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	log.SetOutput(f)
+	log.Println(content)
+	return f.Close()
 }
 
 // Less Checks the i is Before j
