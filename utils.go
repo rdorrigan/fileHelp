@@ -7,18 +7,55 @@ import (
 	"log"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"time"
 )
 
 // File is a file
 type File struct {
-	Info os.FileInfo
+	Info    os.FileInfo
+	File    *os.File
+	Headers []string
 }
 
 // Fldr is a folder
 type Fldr struct {
 	Files []File
+}
+
+// WritetoCSV writes the Orders to CSV
+func WritetoCSV(dst string, data interface{}) error {
+	o, err := os.OpenFile(dst, os.O_APPEND|os.O_CREATE| /*os.O_WRONLY|*/ os.O_RDWR, 0644)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	w := csv.NewWriter(o)
+	// var toWrite []string
+	// toWrite = append(toWrite, f.Headers[0:]...)
+	// w.Write(toWrite)
+	// Default
+	w.UseCRLF = false
+	refdata := reflect.TypeOf(data)
+	nf := refdata.NumField()
+	var wr []string
+	for i := 0; i < nf; i++ {
+		wr = append(wr, strings.TrimSpace(refdata.Field(i).Name))
+		if len(wr) > 0 {
+			w.Write(wr)
+		}
+		wr = append(wr[:0], wr[:0]...)
+	}
+	ref := reflect.ValueOf(data)
+	for x := 0; x < nf; x++ {
+		wr = append(wr, strings.TrimSpace(ref.Field(x).String()))
+		if len(wr) > 0 {
+			w.Write(wr)
+		}
+		wr = append(wr[:0], wr[:0]...)
+	}
+	w.Flush()
+	return o.Close()
 }
 
 // FileExists checks that a file usually the log exists
