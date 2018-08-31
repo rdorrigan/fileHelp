@@ -31,9 +31,6 @@ func WritetoCSV(dst string, data interface{}) error {
 		log.Fatalln(err)
 	}
 	w := csv.NewWriter(o)
-	// var toWrite []string
-	// toWrite = append(toWrite, f.Headers[0:]...)
-	// w.Write(toWrite)
 	// Default
 	w.UseCRLF = false
 	refdata := reflect.TypeOf(data)
@@ -141,6 +138,34 @@ func CopyFileContents(src, dst string) (err error) {
 		return
 	}
 	err = out.Sync()
+	return
+}
+
+// ProcessCSV reads csvs and returns a channel with that data
+func ProcessCSV(rc io.Reader, comma rune, lazy bool) (ch chan []string) {
+	ch = make(chan []string)
+	go func() {
+		r := csv.NewReader(rc)
+		// '\t' tab delimitted
+		r.Comma = comma
+		if lazy == true {
+			r.LazyQuotes = true
+		}
+		if _, err := r.Read(); err != nil { //read header
+			log.Fatal(err)
+		}
+		defer close(ch)
+		for {
+			rec, err := r.Read()
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				log.Fatal(err)
+			}
+			ch <- rec
+		}
+	}()
 	return
 }
 
